@@ -1,0 +1,425 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent;font-family:var(--font-sans,system-ui,sans-serif)}
+#vn{display:flex;flex-direction:column;height:580px;background:var(--color-background-secondary,#f5f5f3);border-radius:12px;overflow:hidden}
+#scene{width:100%;height:190px;position:relative;overflow:hidden;transition:background 0.7s}
+.s-lab{background:linear-gradient(180deg,#b5d4f4 0%,#e6f1fb 55%,#c0dd97 100%)}
+.s-win{background:linear-gradient(180deg,#9fe1cb 0%,#e1f5ee 55%,#c0dd97 100%)}
+.s-err{background:linear-gradient(180deg,#f7c1c1 0%,#fcebeb 55%,#f5c4b3 100%)}
+.deco{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#chars{display:flex;align-items:flex-end;justify-content:center;height:100%;gap:44px;padding:0 20px;position:relative;z-index:2}
+.ch{display:flex;flex-direction:column;align-items:center;gap:5px;transition:all 0.4s;transform-origin:bottom}
+.ch.dim{opacity:0.22;transform:scale(0.9)}
+.ch.active{transform:scale(1.06)}
+.ch-head{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid rgba(255,255,255,0.55);position:relative;z-index:2}
+.ch-body{width:54px;height:64px;border-radius:27px 27px 10px 10px;margin-top:-10px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px}
+.ch-shirt{width:30px;height:14px;border-radius:4px 4px 0 0}
+.ch-lbl{font-size:10px;font-weight:500;color:var(--color-text-secondary,#888);letter-spacing:.05em;text-transform:uppercase}
+.pip{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:7px;height:7px;border-radius:50%;opacity:0;transition:opacity .3s}
+.ch.active .pip{opacity:1;animation:bpip .9s ease-in-out infinite}
+@keyframes bpip{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.4)}}
+#dbox{background:var(--color-background-primary,#fff);border-top:.5px solid var(--color-border-tertiary,rgba(0,0,0,.12));flex:1;display:flex;flex-direction:column;padding:14px 18px;gap:9px;overflow:hidden;min-height:0}
+#sprow{display:flex;align-items:center;gap:8px}
+#spbadge{font-size:11px;font-weight:500;padding:3px 11px;border-radius:20px;letter-spacing:.04em;transition:background .3s,color .3s}
+.ba{background:var(--color-background-info,#e6f1fb);color:var(--color-text-info,#185fa5)}
+.bm{background:var(--color-background-success,#eaf3de);color:var(--color-text-success,#3b6d11)}
+#sc{margin-left:auto;font-size:12px;color:var(--color-text-secondary,#888)}
+#scn{font-weight:500;color:var(--color-text-primary,#111)}
+#dlg{font-size:13.5px;color:var(--color-text-primary,#111);line-height:1.72;min-height:40px;flex-shrink:0}
+#cur{display:inline-block;width:2px;height:13px;background:var(--color-text-secondary,#888);margin-left:1px;vertical-align:middle;animation:bc .8s steps(1) infinite}
+@keyframes bc{0%,100%{opacity:1}50%{opacity:0}}
+#diagwrap{flex-shrink:0;display:none}
+#codewrap{background:var(--color-background-secondary,#f5f5f3);border-radius:8px;border:.5px solid var(--color-border-tertiary,rgba(0,0,0,.12));overflow:hidden;display:none;flex-shrink:0}
+#codehdr{padding:5px 12px;border-bottom:.5px solid var(--color-border-tertiary,rgba(0,0,0,.12));font-size:11px;color:var(--color-text-secondary,#888);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+#codebody{padding:9px 14px;font-family:var(--font-mono,monospace);font-size:11.5px;line-height:1.65;overflow-x:auto;white-space:pre}
+#choices{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.cbtn{background:var(--color-background-secondary,#f5f5f3);border:.5px solid var(--color-border-secondary,rgba(0,0,0,.2));border-radius:8px;padding:8px 13px;font-size:12.5px;color:var(--color-text-primary,#111);cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:8px}
+.cbtn:hover:not(:disabled){background:var(--color-background-tertiary,#eee);transform:translateX(2px)}
+.cbtn.wr{border-color:var(--color-border-danger,#e24b4a);background:var(--color-background-danger,#fcebeb);color:var(--color-text-danger,#a32d2d)}
+.cbtn.ok{border-color:var(--color-border-success,#639922);background:var(--color-background-success,#eaf3de);color:var(--color-text-success,#3b6d11)}
+#nxt{align-self:flex-end;background:transparent;border:.5px solid var(--color-border-secondary,rgba(0,0,0,.2));border-radius:20px;padding:6px 16px;font-size:12px;color:var(--color-text-primary,#111);cursor:pointer;display:none;transition:all .15s;flex-shrink:0}
+#nxt:hover{background:var(--color-background-secondary,#f5f5f3)}
+#prog{height:3px;background:var(--color-background-tertiary,#ddd);flex-shrink:0}
+#pf{height:100%;background:#378ADD;transition:width .5s ease;border-radius:0 2px 2px 0}
+.kw{color:#B5507A}.fn{color:#378ADD}.num{color:#63992A}.cm{color:#888780;font-style:italic}.ty{color:#185FA5}
+svg text{font-family:var(--font-sans,system-ui,sans-serif)}
+</style>
+
+<div id="vn">
+  <div id="prog"><div id="pf" style="width:0%"></div></div>
+  <div id="scene" class="s-lab">
+    <svg class="deco" viewBox="0 0 680 190" preserveAspectRatio="xMidYMax meet" opacity="0.15">
+      <rect x="28" y="130" width="90" height="60" rx="4" fill="#185FA5"/>
+      <rect x="32" y="134" width="82" height="46" rx="2" fill="#B5D4F4"/>
+      <rect x="34" y="136" width="78" height="38" fill="#E6F1FB"/>
+      <rect x="28" y="186" width="90" height="6" rx="2" fill="#0C447C"/>
+      <line x1="48" y1="158" x2="92" y2="148" stroke="#185FA5" stroke-width="1.2"/>
+      <line x1="48" y1="168" x2="82" y2="163" stroke="#185FA5" stroke-width="1.2"/>
+      <rect x="558" y="110" width="94" height="80" rx="4" fill="#185FA5"/>
+      <rect x="562" y="114" width="86" height="56" rx="2" fill="#B5D4F4"/>
+      <rect x="564" y="116" width="82" height="46" fill="#E6F1FB"/>
+      <rect x="558" y="186" width="94" height="6" rx="2" fill="#0C447C"/>
+      <line x1="574" y1="142" x2="626" y2="132" stroke="#185FA5" stroke-width="1.2"/>
+      <line x1="574" y1="152" x2="618" y2="148" stroke="#185FA5" stroke-width="1.2"/>
+      <circle cx="340" cy="32" r="20" fill="#378ADD"/>
+      <text x="340" y="37" text-anchor="middle" font-size="13" fill="#E6F1FB" font-weight="500">C++</text>
+      <rect x="198" y="62" width="64" height="28" rx="4" fill="#97C459"/>
+      <text x="230" y="81" text-anchor="middle" font-size="11" fill="#27500A">fn( ) { }</text>
+      <rect x="418" y="52" width="64" height="28" rx="4" fill="#97C459"/>
+      <text x="450" y="71" text-anchor="middle" font-size="11" fill="#27500A">int x;</text>
+    </svg>
+    <div id="chars">
+      <div class="ch active" id="ca">
+        <div class="ch-head" style="background:#B5D4F4" id="ah">
+          <span class="pip" style="background:#378ADD"></span>😟
+        </div>
+        <div class="ch-body" style="background:#185FA5">
+          <div class="ch-shirt" style="background:#B5D4F4"></div>
+        </div>
+        <div class="ch-lbl">Alex</div>
+      </div>
+      <div class="ch dim" id="cm2">
+        <div class="ch-head" style="background:#C0DD97" id="mh">
+          <span class="pip" style="background:#3B6D11"></span>🧑‍💻
+        </div>
+        <div class="ch-body" style="background:#3B6D11">
+          <div class="ch-shirt" style="background:#C0DD97"></div>
+        </div>
+        <div class="ch-lbl">Mentor</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dbox">
+    <div id="sprow">
+      <span id="spbadge" class="ba">Alex</span>
+      <span id="sc">Score: <span id="scn">0</span>/3</span>
+    </div>
+    <div id="dlg"><span id="to"></span><span id="cur"></span></div>
+    <div id="diagwrap"></div>
+    <div id="codewrap">
+      <div id="codehdr">
+        <span class="dot" style="background:#E24B4A"></span>
+        <span class="dot" style="background:#BA7517"></span>
+        <span class="dot" style="background:#639922"></span>
+        <span style="margin-left:4px">main.cpp</span>
+      </div>
+      <div id="codebody"></div>
+    </div>
+    <div id="choices"></div>
+    <button id="nxt">Continue ›</button>
+  </div>
+</div>
+
+<script>
+const aF={neutral:'😐',sad:'😟',curious:'🤔',happy:'😊',wow:'😮'};
+const mF={explain:'👨‍🏫',proud:'😄',think:'🤔',default:'🧑‍💻'};
+
+/* ── DIAGRAMS ─────────────────────────────────────────────────── */
+const diagrams = {
+
+anatomy: `<svg viewBox="0 0 620 90" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:8px;display:block">
+  <rect width="620" height="90" rx="8" fill="#f5f5f3" style="fill:var(--color-background-secondary)"/>
+  <!-- boxes -->
+  <rect x="10" y="20" width="100" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
+  <rect x="130" y="20" width="120" height="50" rx="6" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+  <rect x="270" y="20" width="160" height="50" rx="6" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/>
+  <rect x="450" y="20" width="30" height="50" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1"/>
+  <rect x="500" y="20" width="110" height="50" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+  <!-- labels top -->
+  <text x="60" y="14" text-anchor="middle" font-size="9" fill="#185FA5" font-weight="500">return type</text>
+  <text x="190" y="14" text-anchor="middle" font-size="9" fill="#3B6D11" font-weight="500">function name</text>
+  <text x="350" y="14" text-anchor="middle" font-size="9" fill="#854F0B" font-weight="500">parameters</text>
+  <text x="465" y="14" text-anchor="middle" font-size="9" fill="#A32D2D" font-weight="500">;</text>
+  <text x="555" y="14" text-anchor="middle" font-size="9" fill="#3C3489" font-weight="500">body (definition only)</text>
+  <!-- code text -->
+  <text x="60" y="50" text-anchor="middle" font-size="13" fill="#185FA5" font-family="monospace" font-weight="600">int</text>
+  <text x="190" y="50" text-anchor="middle" font-size="12" fill="#3B6D11" font-family="monospace">calculateSum</text>
+  <text x="350" y="50" text-anchor="middle" font-size="12" fill="#854F0B" font-family="monospace">(int a, int b)</text>
+  <text x="465" y="50" text-anchor="middle" font-size="14" fill="#A32D2D" font-family="monospace" font-weight="700">;</text>
+  <text x="555" y="50" text-anchor="middle" font-size="12" fill="#3C3489" font-family="monospace">{ ... }</text>
+  <!-- bottom hint -->
+  <text x="10" y="82" font-size="9" fill="#888" font-style="italic">Prototype ends with semicolon — definition replaces ; with { body }</text>
+</svg>`,
+
+flow: `<svg viewBox="0 0 620 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:8px;display:block">
+  <rect width="620" height="110" rx="8" fill="#f5f5f3" style="fill:var(--color-background-secondary)"/>
+  <!-- nodes -->
+  <rect x="10" y="30" width="100" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
+  <text x="60" y="48" text-anchor="middle" font-size="10" fill="#185FA5" font-weight="500">1. Prototype</text>
+  <text x="60" y="62" text-anchor="middle" font-size="9" fill="#185FA5">int add(int a, int b);</text>
+
+  <rect x="170" y="30" width="100" height="44" rx="6" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/>
+  <text x="220" y="48" text-anchor="middle" font-size="10" fill="#854F0B" font-weight="500">2. Definition</text>
+  <text x="220" y="62" text-anchor="middle" font-size="9" fill="#854F0B">int add(...) { }</text>
+
+  <rect x="330" y="30" width="100" height="44" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+  <text x="380" y="48" text-anchor="middle" font-size="10" fill="#3C3489" font-weight="500">3. Call</text>
+  <text x="380" y="62" text-anchor="middle" font-size="9" fill="#3C3489">add(5, 3);</text>
+
+  <rect x="490" y="30" width="120" height="44" rx="6" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+  <text x="550" y="48" text-anchor="middle" font-size="10" fill="#3B6D11" font-weight="500">4. Return value</text>
+  <text x="550" y="62" text-anchor="middle" font-size="9" fill="#3B6D11">int sum = add(5,3);</text>
+
+  <!-- arrows -->
+  <line x1="110" y1="52" x2="168" y2="52" stroke="#888" stroke-width="1.2"/>
+  <polygon points="168,49 174,52 168,55" fill="#888"/>
+  <line x1="270" y1="52" x2="328" y2="52" stroke="#888" stroke-width="1.2"/>
+  <polygon points="328,49 334,52 328,55" fill="#888"/>
+  <line x1="430" y1="52" x2="488" y2="52" stroke="#888" stroke-width="1.2"/>
+  <polygon points="488,49 494,52 488,55" fill="#888"/>
+  <!-- bottom -->
+  <text x="10" y="100" font-size="9" fill="#888" font-style="italic">Declare → Implement → Call → Use the result</text>
+</svg>`,
+
+returntype: `<svg viewBox="0 0 620 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:8px;display:block">
+  <rect width="620" height="110" rx="8" fill="#f5f5f3" style="fill:var(--color-background-secondary)"/>
+  <text x="14" y="22" font-size="10" fill="#888" font-weight="500">What does the return type promise?</text>
+  <!-- row 1 -->
+  <rect x="14" y="30" width="55" height="28" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
+  <text x="41" y="48" text-anchor="middle" font-size="12" fill="#185FA5" font-family="monospace" font-weight="600">int</text>
+  <text x="78" y="48" font-size="11" fill="#185FA5">→ gives back a whole number (8, -3, 100…)</text>
+  <!-- row 2 -->
+  <rect x="14" y="64" width="55" height="28" rx="4" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+  <text x="41" y="82" text-anchor="middle" font-size="12" fill="#3B6D11" font-family="monospace" font-weight="600">void</text>
+  <text x="78" y="82" font-size="11" fill="#3B6D11">→ gives back nothing (no return value needed)</text>
+  <!-- mismatch callout -->
+  <rect x="390" y="30" width="220" height="60" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1"/>
+  <text x="500" y="48" text-anchor="middle" font-size="10" fill="#A32D2D" font-weight="500">Mismatch = compiler error</text>
+  <text x="404" y="64" font-size="10" fill="#A32D2D" font-family="monospace">void add(...) { return 5; } ✗</text>
+  <text x="404" y="80" font-size="10" fill="#3B6D11" font-family="monospace">int  add(...) { return 5; } ✓</text>
+</svg>`,
+
+complete: `<svg viewBox="0 0 620 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:8px;display:block">
+  <rect width="620" height="140" rx="8" fill="#f5f5f3" style="fill:var(--color-background-secondary)"/>
+  <!-- three zone columns -->
+  <rect x="10" y="16" width="180" height="110" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="100" y="11" text-anchor="middle" font-size="9" fill="#185FA5" font-weight="500">① PROTOTYPE (top of file)</text>
+  <text x="20" y="40" font-size="11" fill="#185FA5" font-family="monospace">int calculateSum</text>
+  <text x="20" y="56" font-size="11" fill="#185FA5" font-family="monospace">  (int a, int b);</text>
+  <text x="20" y="78" font-size="9" fill="#888">Tells compiler the</text>
+  <text x="20" y="90" font-size="9" fill="#888">function exists</text>
+
+  <rect x="210" y="16" width="190" height="110" rx="6" fill="#FAEEDA" stroke="#BA7517" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="305" y="11" text-anchor="middle" font-size="9" fill="#854F0B" font-weight="500">② DEFINITION (middle)</text>
+  <text x="220" y="40" font-size="11" fill="#854F0B" font-family="monospace">int calculateSum</text>
+  <text x="220" y="56" font-size="11" fill="#854F0B" font-family="monospace">  (int a,int b){</text>
+  <text x="220" y="72" font-size="11" fill="#854F0B" font-family="monospace">  return a+b;</text>
+  <text x="220" y="88" font-size="11" fill="#854F0B" font-family="monospace">}</text>
+  <text x="220" y="108" font-size="9" fill="#888">The actual logic</text>
+
+  <rect x="420" y="16" width="190" height="110" rx="6" fill="#EAF3DE" stroke="#639922" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="515" y="11" text-anchor="middle" font-size="9" fill="#3B6D11" font-weight="500">③ CALL (inside main)</text>
+  <text x="430" y="40" font-size="11" fill="#3B6D11" font-family="monospace">int main() {</text>
+  <text x="430" y="56" font-size="11" fill="#3B6D11" font-family="monospace">  int s =</text>
+  <text x="430" y="72" font-size="11" fill="#3B6D11" font-family="monospace">  calculateSum</text>
+  <text x="430" y="88" font-size="11" fill="#3B6D11" font-family="monospace">    (5, 3);</text>
+  <text x="430" y="108" font-size="9" fill="#888">Where you use it</text>
+
+  <!-- connecting arrows -->
+  <line x1="190" y1="72" x2="208" y2="72" stroke="#888" stroke-width="1.2"/>
+  <polygon points="208,69 214,72 208,75" fill="#888"/>
+  <line x1="400" y1="72" x2="418" y2="72" stroke="#888" stroke-width="1.2"/>
+  <polygon points="418,69 424,72 418,75" fill="#888"/>
+</svg>`
+};
+
+/* ── SCENES ───────────────────────────────────────────────────── */
+const scenes = [
+  {bg:'lab',sp:'Alex',fo:'alex',af:'sad',
+   text:"Ugh... I've been staring at this C++ assignment for an hour. I have no idea how to write a function.",next:1},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Hey! I'm a senior CS student. Functions aren't scary once you know four key terms: return type, function name, parameters, and function body.",next:2},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'think',
+   text:"Before we write anything — do you know what a function prototype is?",
+   choices:[
+     {text:"Isn't it like a rough draft of the function?",icon:'💡',next:3},
+     {text:"No idea.",icon:'🤷',next:4}
+   ]},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'proud',
+   text:"Great intuition! It's a declaration — you're telling the compiler 'a function with this name and signature exists.' The actual logic comes later.",next:5},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"No worries! Think of it like a chapter title: you list it up front before writing the chapter. It just announces to the compiler that the function exists.",next:5},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Let me show you how a function is structured visually. Every piece has a specific role:",
+   diag:'anatomy',next:6},
+
+  {bg:'lab',sp:'Alex',fo:'alex',af:'curious',
+   text:"So the prototype is just that top line — without the curly braces?",next:7},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Exactly. Here's the prototype for a function that adds two numbers. Notice it ends with a semicolon — that's what makes it a prototype, not a definition.",
+   code:[
+     {t:'ty',v:'int'},{t:'x',v:' '},{t:'fn',v:'calculateSum'},{t:'x',v:'('},{t:'ty',v:'int'},{t:'x',v:' a, '},{t:'ty',v:'int'},{t:'x',v:' b);'}
+   ],next:8},
+
+  {bg:'lab',sp:'Alex',fo:'alex',af:'curious',
+   text:"What happens if I forget the semicolon at the end?",
+   choices:[
+     {text:"Nothing, it probably still compiles.",icon:'🤞',correct:false,
+      fb:"Nope — compiler error! The semicolon tells the compiler the statement is complete. Missing it causes a cascade of confusing parse errors.",next:9},
+     {text:"The compiler throws an error.",icon:'⚠️',correct:true,
+      fb:"Exactly right! Missing semicolons are the #1 beginner mistake. Always end your prototype with one.",next:9}
+   ]},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Good. Now let's write the definition — where the actual logic lives. Same signature, but curly braces instead of a semicolon.",
+   code:[
+     {t:'ty',v:'int'},{t:'x',v:' '},{t:'fn',v:'calculateSum'},{t:'x',v:'('},{t:'ty',v:'int'},{t:'x',v:' a, '},{t:'ty',v:'int'},{t:'x',v:' b) {\n    '},{t:'ty',v:'int'},{t:'x',v:' result = a + b;\n    '},{t:'kw',v:'return'},{t:'x',v:' result;\n}'}
+   ],next:10},
+
+  {bg:'lab',sp:'Alex',fo:'alex',af:'curious',
+   text:"What does 'return result' do exactly?",
+   choices:[
+     {text:"It ends the entire program.",icon:'🛑',correct:false,
+      fb:"Not quite — 'return' sends a value back to the caller, then that function ends. The rest of the program keeps running.",next:11},
+     {text:"It sends the value back to whoever called the function.",icon:'↩️',correct:true,
+      fb:"Exactly! The return type 'int' means we must return a whole number. The caller receives it right where they called the function.",next:11}
+   ]},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Here's how the whole process flows — from declaring the function all the way to using its result:",
+   diag:'flow',next:12},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Now to call it inside main(). You pass arguments in, and store whatever the function returns.",
+   code:[
+     {t:'ty',v:'int'},{t:'x',v:' '},{t:'fn',v:'main'},{t:'x',v:'() {\n    '},{t:'ty',v:'int'},{t:'x',v:' sum = '},{t:'fn',v:'calculateSum'},{t:'x',v:'('},{t:'num',v:'5'},{t:'x',v:', '},{t:'num',v:'3'},{t:'x',v:');\n    cout << sum << endl;\n    '},{t:'kw',v:'return'},{t:'x',v:' '},{t:'num',v:'0'},{t:'x',v:';\n}'}
+   ],next:13},
+
+  {bg:'lab',sp:'Alex',fo:'alex',af:'curious',
+   text:"What if I accidentally write 'void' as the return type but my function is supposed to return a number?",
+   choices:[
+     {text:"It'll figure it out at runtime.",icon:'🎲',correct:false,
+      fb:"Nope — this is caught at compile time. 'void' means 'returns nothing'. Trying to return a value from a void function = instant compiler error.",next:14},
+     {text:"Compiler error — types don't match.",icon:'🔴',correct:true,
+      fb:"Correct! Return type mismatches are compile-time errors. Always make sure what you return matches the declared return type.",next:14}
+   ]},
+
+  {bg:'lab',sp:'Mentor',fo:'mentor',mf:'explain',
+   text:"Let's look at return types side by side — this trips up most beginners:",
+   diag:'returntype',next:15},
+
+  {bg:'win',sp:'Mentor',fo:'mentor',mf:'proud',
+   text:"You've got it! Here's the complete picture — all three zones of a C++ program using a function:",
+   diag:'complete',
+   code:[
+     {t:'cm',v:'// 1. Prototype'},{t:'x',v:'\n'},{t:'ty',v:'int'},{t:'x',v:' '},{t:'fn',v:'calculateSum'},{t:'x',v:'('},{t:'ty',v:'int'},{t:'x',v:' a, '},{t:'ty',v:'int'},{t:'x',v:' b);\n\n'},{t:'cm',v:'// 2. Definition'},{t:'x',v:'\n'},{t:'ty',v:'int'},{t:'x',v:' '},{t:'fn',v:'calculateSum'},{t:'x',v:'('},{t:'ty',v:'int'},{t:'x',v:' a, '},{t:'ty',v:'int'},{t:'x',v:' b) {\n    '},{t:'kw',v:'return'},{t:'x',v:' a + b;\n}\n\n'},{t:'cm',v:'// 3. Call in main'},{t:'x',v:'\n'},{t:'ty',v:'int'},{t:'x',v:' '},{t:'fn',v:'main'},{t:'x',v:'() {\n    '},{t:'ty',v:'int'},{t:'x',v:' sum = '},{t:'fn',v:'calculateSum'},{t:'x',v:'('},{t:'num',v:'5'},{t:'x',v:', '},{t:'num',v:'3'},{t:'x',v:');\n    '},{t:'kw',v:'return'},{t:'x',v:' '},{t:'num',v:'0'},{t:'x',v:';\n}'}
+   ],next:16},
+
+  {bg:'win',sp:'Alex',fo:'alex',af:'happy',
+   text:"That makes total sense now! Prototype at top, definition in the middle, call it in main. I can actually do this.",next:17},
+
+  {bg:'win',sp:'Mentor',fo:'mentor',mf:'proud',
+   text:"You've learned everything: prototypes, definitions, parameters, return types, and the mistakes to avoid. Go write that function, Alex. You've got this.",end:true}
+];
+
+/* ── ENGINE ───────────────────────────────────────────────────── */
+let cur=0,score=0,typing=null,done=false;
+
+const pf=document.getElementById('pf');
+const scEl=document.getElementById('scene');
+const to=document.getElementById('to');
+const curEl=document.getElementById('cur');
+const diagwrap=document.getElementById('diagwrap');
+const codewrap=document.getElementById('codewrap');
+const codebody=document.getElementById('codebody');
+const choices=document.getElementById('choices');
+const nxt=document.getElementById('nxt');
+const spbadge=document.getElementById('spbadge');
+const scnEl=document.getElementById('scn');
+const caEl=document.getElementById('ca');
+const cmEl=document.getElementById('cm2');
+const ahEl=document.getElementById('ah');
+const mhEl=document.getElementById('mh');
+
+function stopT(){if(typing){clearInterval(typing);typing=null}}
+
+function typeText(txt,cb){
+  stopT();to.textContent='';done=false;
+  curEl.style.display='inline-block';
+  let i=0;
+  typing=setInterval(()=>{
+    to.textContent=txt.slice(0,++i);
+    if(i>=txt.length){stopT();done=true;curEl.style.display='none';if(cb)cb();}
+  },20);
+}
+
+function hlCode(tokens){
+  const map={ty:'#185FA5',fn:'#378ADD',kw:'#B5507A',num:'#63992A',cm:'#888780',x:null};
+  return tokens.map(t=>{
+    const col=map[t.t];
+    const style=col?`style="color:${col}${t.t==='cm'?';font-style:italic':''}"`:'' ;
+    return col?`<span ${style}>${esc(t.v)}</span>`:esc(t.v);
+  }).join('');
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function render(idx){
+  const s=scenes[idx];
+  pf.style.width=Math.round((idx/(scenes.length-1))*100)+'%';
+  scEl.className='scene '+(s.bg==='lab'?'s-lab':s.bg==='win'?'s-win':'s-err');
+
+  caEl.className='ch'+(s.fo==='alex'?' active':' dim');
+  cmEl.className='ch'+(s.fo==='mentor'?' active':' dim');
+  if(s.af)ahEl.innerHTML='<span class="pip" style="background:#378ADD"></span>'+aF[s.af];
+  if(s.mf)mhEl.innerHTML='<span class="pip" style="background:#3B6D11"></span>'+mF[s.mf];
+
+  spbadge.textContent=s.sp;
+  spbadge.className=s.sp==='Alex'?'ba':'bm';
+
+  diagwrap.style.display='none';
+  diagwrap.innerHTML='';
+  if(s.diag){diagwrap.style.display='block';diagwrap.innerHTML=diagrams[s.diag];}
+
+  codewrap.style.display='none';
+  if(s.code){codewrap.style.display='block';codebody.innerHTML=hlCode(s.code);}
+
+  choices.innerHTML='';nxt.style.display='none';
+
+  typeText(s.text,()=>{
+    if(s.choices){
+      s.choices.forEach(c=>{
+        const btn=document.createElement('button');
+        btn.className='cbtn';
+        btn.innerHTML=`<span style="font-size:14px">${c.icon||'›'}</span>${c.text}`;
+        btn.onclick=()=>{
+          Array.from(choices.children).forEach(b=>{b.disabled=true;b.style.opacity='.45'});
+          if(c.correct===false){btn.classList.add('wr');btn.style.opacity='1';}
+          else if(c.correct===true){btn.classList.add('ok');btn.style.opacity='1';score++;scnEl.textContent=score;}
+          if(c.fb){
+            typeText(c.fb,()=>setTimeout(()=>{cur=c.next;render(cur)},700));
+            spbadge.textContent='Mentor';spbadge.className='bm';
+          } else {setTimeout(()=>{cur=c.next;render(cur)},500);}
+        };
+        choices.appendChild(btn);
+      });
+    } else if(s.end){
+      const d=document.createElement('div');
+      d.style.cssText='display:flex;flex-direction:column;gap:6px;align-items:flex-start';
+      d.innerHTML=`<div style="font-size:13px;color:var(--color-text-success);font-weight:500">Tutorial complete — score: ${score}/3</div>`;
+      const rb=document.createElement('button');
+      rb.className='cbtn ok';rb.innerHTML='↺ Play again';
+      rb.onclick=()=>{cur=0;score=0;scnEl.textContent=0;render(0)};
+      d.appendChild(rb);choices.appendChild(d);
+    } else {nxt.style.display='block';}
+  });
+
+  nxt.onclick=()=>{
+    if(!done){stopT();to.textContent=s.text;curEl.style.display='none';done=true;nxt.style.display='block';return;}
+    if(s.next!==undefined){cur=s.next;render(cur);}
+  };
+}
+render(0);
+</script>
